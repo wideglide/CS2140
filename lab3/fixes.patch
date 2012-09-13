@@ -1,0 +1,238 @@
+Index: catalan.c
+===================================================================
+--- catalan.c	(revision 15)
++++ catalan.c	(working copy)
+@@ -19,7 +19,9 @@
+ #define FOREVER 1
+ 
+ // Catalan number type
+-typedef int catalan_t;
++// fixed -r 4 problem: incorrect output of C > 19, 
++typedef long long int catalan_t;
++// a long long int is needed for C_20 and larger to be computed
+ 
+ // Holds the dynamic programming state for computing Catalan numbers
+ typedef struct {
+@@ -96,11 +98,15 @@
+ 
+     if (!(ptr->buf) || (n > ptr->len-1)) {
+         // if an adequate buffer was not given, then grow it
+-        ptr->buf = (catalan_t *) realloc(ptr->buf, (n+1)*sizeof(catalan_t));
+-        if (!(ptr->buf)) {
++        // fixed -r 4 problem: a failure on realloc will clobber ptr->buf
++        catalan_t *tempPtr;
++        tempPtr = (catalan_t *) realloc(ptr->buf, (n+1)*sizeof(catalan_t));
++        if (!(tempPtr)) {
+             perror("realloc");
+             return -1;
+         }
++        ptr->buf = tempPtr;
++        // added a temporary pointer for realloc to use
+         ptr->len = n+1;
+     }
+     for(i = 0; i <= n; i++) {
+@@ -141,7 +147,9 @@
+ //
+ void printc(char *message, int n, catalan_t x)
+ {
+-    printf("%s%d is %d\n", message, n, x);
++    // fixed -r 4 problem: now that catalan_t is a long long
++    printf("%s%d is %lld\n", message, n, x);
++    // printc function must be updated as well
+ }
+ 
+ 
+@@ -154,11 +162,13 @@
+     const int total = 10;
+     catalan_t *ans;
+ 
+-    ans = (catalan_t *) malloc(total * sizeof(catalan_t));
++    // fixed -r 4 problem: since C_10 is the 11th catalan number
++    ans = (catalan_t *) malloc((total+1) * sizeof(catalan_t));
+     
+-    for (i = 0; i < total; i++) {
+-        catalan(i, ans, total);
++    for (i = 0; i <= total; i++) {
++        catalan(i, ans, total+1);
+     }
++    // the size of the array should be (total + 1)
+     printc("The number of Dyck words of length ", 2*total, ans[total]);
+     free(ans);
+ }
+@@ -171,6 +181,10 @@
+ {
+     catalan_work_t ans;
+     const int total = 20;
++    // fixed -r 5 problem: ans is referenced uninitialized
++    ans.buf = NULL;
++    ans.len = 0;
++    // setting buf=NULL and len = 0 will allow catalan_fill do its work
+     
+     if (catalan_fill(total, &ans)) {
+         exit(-1);
+@@ -191,14 +205,18 @@
+     catalan_work_t *ans;
+     
+     ans = (catalan_work_t *) malloc(sizeof(catalan_work_t));
+-    i = (catalan_t *) malloc(total*sizeof(catalan_t));
++    // fixed -r 7 problem: same off by one error for total
++    i = (catalan_t *) malloc((total+1)*sizeof(catalan_t));
+     ans->buf = i;
+-    free(i);
+-    ans->len = total;
++    // fixed -r 7 problem: the malloc array i was freed before use
++    // fixed -r 7 problem: off by one error for total
++    ans->len = total+1;
+ 
+     catalan_fill(total, ans);
+     printc("Catalan number C_", ans->len-1, ans->buf[ans->len-1]);
+ 
++    // fixed -r 7 problem: both malloc'd areas in heap must be freed
++    free(ans->buf);
+     free(ans);
+ }
+ 
+@@ -212,15 +230,20 @@
+     const int total = 20;
+     catalan_t *ans;
+ 
+-    ans = (catalan_t *) malloc(total+1 * sizeof(catalan_t));
++    // fixed -r 8 problem: parantheses must be included for correct
++    ans = (catalan_t *) malloc((total+1) * sizeof(catalan_t));
++    // order of precedence to be executed
+ 
+     i = 0;
+-    while ( i < total ) {
+-        catalan(i, ans, total);
++    // fixed -r 8 problem: off by one error for conditional & total
++    while ( i <= total ) {
++        catalan(i, ans, total+1);
+         printc("C_", i, ans[i]);
+         i++;
+     }
+     printc("So, C_", total, ans[total]);
++    // fixed -r 8 problem: malloc'd space was not free'd
++    free(ans);
+ }
+ 
+ 
+@@ -235,6 +258,9 @@
+     total =  5 + rand() % 15;
+     ans = catalan_answers(total);
+     printc("First value: Catalan number C_", total, ans[total]);
++    // fixed -r 10 problem: since ans is not passed to catalan_answers,
++    free(ans);
++    // memory must be free'd
+ 
+     total = 5 + rand() % 15;
+     ans = catalan_answers(total);
+@@ -255,6 +281,9 @@
+ 
+     // prepare room for the answer
+     ptr = (catalan_work_t *) malloc(sizeof(catalan_work_t));
++    // fixed -r 11 problem: space was not allocated for the duplicate
++    ptr->buf = (catalan_t *) malloc((total+1) * sizeof(catalan_t));
++    // of ans- malloc'd space for ptr-buf
+     ans.buf = (catalan_t *) malloc((total+1) * sizeof(catalan_t));
+     ans.len = total+1;
+ 
+@@ -262,7 +291,10 @@
+     catalan_fill(total, &ans);
+ 
+     // make a duplicate of ans, and then adjust the copy
+-    memcpy(ptr, &ans, sizeof(catalan_work_t));
++    // fixed -r 11 problem: memcpy should copy only the array of values
++    memcpy(ptr->buf, ans.buf, (total +1) * sizeof(catalan_t));
++    // ptr_buf already points to the correct space, len needs to be copied
++    ptr->len = ans.len;
+     for(i = 0; i < ptr->len; i++) {
+         ptr->buf[i] -= 1;
+     }
+@@ -270,7 +302,9 @@
+     printc("Catalan number C_", ans.len-1, ans.buf[ans.len-1]);
+     free(ans.buf);
+ 
+-    printc("     and, -1 + C_", ptr->len-1, ptr->buf[ptr->len-1]);
++    printc("     and,  -1  C_", ptr->len-1, ptr->buf[ptr->len-1]);
++    // fixed -r 11 problem: ptr-buf array must be free'd
++    free(ptr->buf);
+     free(ptr);
+ }
+ 
+@@ -292,7 +326,9 @@
+     ans.len = 5;
+     catalan_fill(total, &ans);
+     printc("Catalan number C_", ans.len-1, ans.buf[ans.len-1]);
+-    free(ptr);
++    //fixed -r 12 problem: ans.buf should be the free'd memory since
++    free(ans.buf);
++    // the call to catalan_fill might have created new memory space
+ 
+     // another time, showing catalan_fill doesn't need a pre-malloc'd pointer
+     ans.buf = NULL;
+@@ -302,6 +338,8 @@
+         ans.buf[i] += 1;
+     }
+     printc("            1+ C_", ans.len-1, ans.buf[ans.len-1]);
++    //fixed -r 12 problem: ans.buf needs to be free'd again
++    free(ans.buf);
+ }
+ 
+ 
+@@ -312,7 +350,7 @@
+ {
+     int total = 20;
+     catalan_work_t ans1, ans2;
+-    catalan_t *ptr;
++    // fixed -r 14 problem: no need for catalan_t ptr, it becomes a distraction
+ 
+     ans1.buf = NULL;
+     ans1.len = 0;
+@@ -322,11 +360,13 @@
+     printc("Catalan number C_", ans1.len-1, ans1.buf[ans1.len-1]);
+ 
+     // lets re-use the buffer from before
+-    ans2.buf = ptr = ans1.buf;
++    ans2.buf = ans1.buf;
+     ans2.len = ans1.len;
+     catalan_fill(total*2, &ans2);
+     printc("Catalan number C_", ans2.len-1, ans2.buf[ans2.len-1]);
+-    free(ptr);
++    //fixed -r 14 problem: ans2.buf points to our alloc'd memory
++    free(ans2.buf);
++    // so free ans2.buf instead of ptr which has been removed
+ }
+ 
+ 
+Index: Makefile
+===================================================================
+--- Makefile	(revision 15)
++++ Makefile	(working copy)
+@@ -11,3 +11,27 @@
+ 
+ catalan: catalan.c
+ 	gcc -g -Wall $< -o $@
++
++test1: catalan
++	valgrind --malloc-fill=0x0 --free-fill=0x0 --leak-check=full ./catalan 1
++
++test2: catalan
++	valgrind --malloc-fill=0x0 --free-fill=0x0 --leak-check=full ./catalan 2
++
++test3: catalan
++	valgrind --malloc-fill=0x0 --free-fill=0x0 --leak-check=full ./catalan 3
++
++test4: catalan
++	valgrind --malloc-fill=0x0 --free-fill=0x0 --leak-check=full ./catalan 4
++
++test5: catalan
++	valgrind --malloc-fill=0x0 --free-fill=0x0 --leak-check=full ./catalan 5
++
++test6: catalan
++	valgrind --malloc-fill=0x0 --free-fill=0x0 --leak-check=full ./catalan 6
++
++test7: catalan
++	valgrind --malloc-fill=0x0 --free-fill=0x0 --leak-check=full ./catalan 7
++
++test8: catalan
++	valgrind --malloc-fill=0x0 --free-fill=0x0 --leak-check=full ./catalan 8
