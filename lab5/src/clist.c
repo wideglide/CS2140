@@ -7,6 +7,7 @@
 int ordered_add(int type, unsigned int pos, comb_t value, cnode_t **head)
 {
     int result = 0;
+    if (head == NULL) { return -1; } // check for bad args
     cnode_t *p = *head, *q = NULL;
     cnode_t *n = NULL;
 	// missing logic

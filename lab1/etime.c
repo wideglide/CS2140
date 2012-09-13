@@ -12,20 +12,20 @@ int main( int argc, const char* argv[] )
 	if (argc != 3) { 
 		printf("Error - incorrect number of arguments. \n\n");
 		inputError();
-		return 0;
+		return -1;
 	}
 	
-	time_t rawtime, eptime;							// rawtime stores our input time, eptime is epoch
-	rawtime = time(NULL);							// initialize the value for rawtime
-	struct tm * timeinfo;							// create a pointer to a tm structure
+	time_t rawtime, eptime;				// rawtime stores our input time, eptime is epoch
+	rawtime = time(NULL);				// initialize the value for rawtime
+	struct tm * timeinfo;				// create a pointer to a tm structure
 	struct tm epochtime = {0,0,0,1,0,70,0,0,0};		// epoch time stores epoch time 
-	timeinfo = gmtime ( &rawtime );					// initialize the timeinfo with rawtime
+	timeinfo = gmtime ( &rawtime );		// initialize the timeinfo with rawtime
 	
-	char *tempStr;									// a pointer to use in our loop
-	char *inputStr[2] = {argv[1], argv[2]};			// create a pointer to our cmd arguments
-	int inputAr[6];									// array for {year, month, day, hour, min, sec }
-	int minMax[12] = {1900, 2039, 1, 12, 1, 31, 0, 23, 0, 59, 0, 59 };
-	int i, count = 0;								// minMax is (min,max) pairs for each array value
+	char *tempStr;						// a pointer to use in our loop
+	char *inputStr[2] = {(char*) argv[1], (char*) argv[2]};		// create a pointer to our cmd arguments
+	int inputAr[6];						// array for {year, month, day, hour, min, sec }
+	int minMax[12] = {1900, 2038, 1, 12, 1, 31, 0, 23, 0, 59, 0, 59 };
+	int i, count = 0;					// minMax is (min,max) pairs for each array value
 	
 	/* Now process the command arguments storing each value
 	 * in our array sequentially.  */
@@ -53,7 +53,7 @@ int main( int argc, const char* argv[] )
 		if (inputAr[i] < minMax[2*i] || inputAr[i] > minMax[2*i+1]) {
 			printf("Warning - Input values out of range.\n");
 			printf("Value should be %d < %d < %d\n\n",minMax[2*i],inputAr[i],minMax[2*i+1]);
-			
+        return -1;
 		}
 	}
 	timeinfo->tm_year = inputAr[0] -1900;
@@ -78,5 +78,5 @@ int inputError()
 		printf("  date (yyyy-mm-dd) and time (hh:mm:ss)\n");
 		printf("  example: etime 2011-07-01 10:30:15\n");
 		printf("  only years 1901-2038 are accepted.\n");
-		return 0; 
+		return -1; 
 }
