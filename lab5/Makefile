@@ -20,10 +20,10 @@ clean:
 # Rules for BINS
 #
 combtest:combtest.c $(OBJS)
-	$(CC) $^ -o $@
+	$(CC) $(CFLAGS) $^ -o $@
 	
 combtest-0: combtest.c lib/libcomb.a
-	$(CC) $^ -o $@
+	$(CC) $(CFLAGS) $^ -o $@
 
 combtest-1: combtest.o lib/libcomb.so
 	$(CC) $< $(LDFLAGS) -o $@
