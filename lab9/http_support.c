@@ -1,4 +1,4 @@
-/* Bundt, Josh          CS2140          Lab 9 - wserver  */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
