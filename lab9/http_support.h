@@ -1,4 +1,4 @@
-/* Bundt, Josh			CS2140			Lab 9 - wserver  */
+
 /*
 ** Header for support functions, used to build a HTTP 1.0 compliant webserver
 */
