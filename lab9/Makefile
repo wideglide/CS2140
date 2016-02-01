@@ -1,4 +1,4 @@
-# Bundt, Josh			CS2140			Lab 9 - wserver 
+
 #
 # Makefile for wserver
 #
